@@ -13,7 +13,6 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import crazydude.com.telemetry.R
-import crazydude.com.telemetry.api.*
 import crazydude.com.telemetry.manager.PreferenceManager
 import crazydude.com.telemetry.maps.Position
 import crazydude.com.telemetry.protocol.TelemetryModel
@@ -168,75 +167,7 @@ class DataService : Service(), DataDecoder.Listener {
 
     override fun onConnected() {
         mutableConnectionStateLiveData.postValue(ConnectionState.CONNECTED)
-        if (preferenceManager.isSendDataEnabled()) {
-            createSession()
-        }
         startForeground(1, notification)
-    }
-
-
-    fun createSession() {
-        if (!isConnected()) {
-            return
-        }
-        ApiManager.apiService.createSession(
-            SessionCreateRequest(preferenceManager.getCallsign(), preferenceManager.getModel())
-        ).enqueue(object : Callback<SessionCreateResponse?> {
-            override fun onFailure(call: Call<SessionCreateResponse?>, t: Throwable) {
-                Handler()
-                    .postDelayed({ createSession() }, 5000)
-            }
-
-            override fun onResponse(
-                call: Call<SessionCreateResponse?>,
-                response: Response<SessionCreateResponse?>
-            ) {
-                try {
-                    response?.body()?.let {
-                        it?.sessionId.let { sendTelemetryData(it) }
-                    }
-                } catch (e: NullPointerException) {
-                    // Unknown
-                }
-            }
-        })
-    }
-
-    fun sendTelemetryData(sessionId: String) {
-        if (!isConnected()) {
-            return
-        }
-        apiHandler.postDelayed({
-            if (telemetryModel.gpsFix && telemetryModel.armed) {
-                ApiManager.apiService.sendData(
-                    AddLogRequest(
-                        sessionId,
-                        telemetryModel.position.last().lat,
-                        telemetryModel.position.last().lon,
-                        telemetryModel.altitude,
-                        telemetryModel.heading,
-                        if (preferenceManager.usePitotTube()) telemetryModel.airSpeed else telemetryModel.gpsSpeed
-                    )
-                ).enqueue(object : Callback<AddLogResponse?> {
-                    override fun onFailure(call: Call<AddLogResponse?>, t: Throwable) {
-                        sendTelemetryData(sessionId)
-                    }
-
-                    override fun onResponse(
-                        call: Call<AddLogResponse?>,
-                        response: Response<AddLogResponse?>
-                    ) {
-                        try {
-                            sendTelemetryData(sessionId)
-                        } catch (e: NullPointerException) {
-
-                        }
-                    }
-                })
-            } else {
-                sendTelemetryData(sessionId)
-            }
-        }, 5000)
     }
 
     override fun onGPSData(latitude: Double, longitude: Double) {
@@ -283,6 +214,14 @@ class DataService : Service(), DataDecoder.Listener {
 
     override fun onRSSIData(rssi: Int) {
         telemetryModel.rssi = rssi
+    }
+
+    override fun onCrsfLqData(lq: Int) {
+        telemetryModel.crsfLq = lq
+    }
+
+    override fun onCrsfRfData(rf: Int) {
+        telemetryModel.crsfRf = rf
     }
 
     override fun onDisconnected() {

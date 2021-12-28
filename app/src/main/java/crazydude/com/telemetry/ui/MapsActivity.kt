@@ -16,7 +16,6 @@ import android.os.*
 import android.provider.DocumentsContract
 import android.text.Html
 import android.text.method.LinkMovementMethod
-import android.util.Log
 import android.view.View
 import android.widget.*
 import androidx.activity.viewModels
@@ -31,7 +30,6 @@ import com.google.android.gms.maps.*
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.maps.android.SphericalUtil
 import com.hoho.android.usbserial.driver.CdcAcmSerialDriver
-import com.hoho.android.usbserial.driver.ProbeTable
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.driver.UsbSerialProber
 import crazydude.com.telemetry.R
@@ -318,7 +316,6 @@ class MapsActivity : AppCompatActivity() {
     private fun showMyLocation() {
         if (checkCallingOrSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             map?.isMyLocationEnabled = true
-            checkSendDataDialogShown()
         } else {
             ActivityCompat.requestPermissions(
                 this,
@@ -943,11 +940,9 @@ class MapsActivity : AppCompatActivity() {
             if (requestCode == REQUEST_LOCATION_PERMISSION) {
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     map?.isMyLocationEnabled = true
-                    checkSendDataDialogShown()
                 } else {
                     AlertDialog.Builder(this)
                         .setMessage("Location permission is needed in order to discover BLE devices and show your location on map")
-                        .setOnDismissListener { checkSendDataDialogShown() }
                         .setPositiveButton("OK", null)
                         .show()
                 }
@@ -1018,38 +1013,19 @@ class MapsActivity : AppCompatActivity() {
     }
 
     private fun updateRSSI() {
-        var rssi = binding.telemetry?.value?.rssi
-        this.binding.topLayout.rssi.text = if (rssi == -1) "-" else rssi.toString()
-        this.setRSSIIcon(rssi?:-1);
-    }
-
-    private fun checkSendDataDialogShown() {
-        if (!preferenceManager.isSendDataDialogShown()) {
-            firebaseAnalytics.logEvent("send_data_dialog_shown", null)
-            val dialog = AlertDialog.Builder(this)
-                .setMessage(
-                    Html.fromHtml(
-                        "You can enable telemetry data sharing. Telemetry data sharing sends data to <a href='https://uavradar.org'>https://uavradar.org</a> at which" +
-                                "you can watch for other aicraft flights (just like flightradar24, but for UAV). You can assign" +
-                                " your callsign and your UAV model in the settings which will be used as your aircraft info. " +
-                                "Data sent when you arm your UAV and have valid 3D GPS Fix"
-                    )
-                )
-                .setPositiveButton("Enable") { _, i ->
-                    preferenceManager.setTelemetrySendingEnabled(true)
-                    firebaseAnalytics.setUserProperty("telemetry_sharing_enable", "true")
-                    firebaseAnalytics.logEvent("telemetry_sharing_enabled", null)
-                }
-                .setNegativeButton("Disable") { _, i ->
-                    preferenceManager.setTelemetrySendingEnabled(false)
-                    firebaseAnalytics.setUserProperty("telemetry_sharing_enable", "false")
-                    firebaseAnalytics.logEvent("telemetry_sharing_disabled", null)
-                }
-                .setCancelable(false)
-                .show()
-            dialog.findViewById<TextView>(android.R.id.message)?.movementMethod =
-                LinkMovementMethod.getInstance()
+        var iconValue = 0;
+        var text = ""
+        var lq = binding.telemetry?.value?.crsfLq
+        var rf = binding.telemetry?.value?.crsfRf
+        if (preferenceManager.useCrsfLq() && lq != -1 && rf != -1 ) {
+            iconValue = lq!!;
+            text  = rf.toString() + ":" + lq.toString()
+        } else {
+            iconValue = binding.telemetry?.value?.rssi!!
+            text = if (iconValue == -1) "-" else iconValue.toString()
         }
+        this.binding.topLayout.rssi.text = text
+        this.setRSSIIcon(iconValue ?: -1);
     }
 
     private fun showMapTypeSelectorDialog() {

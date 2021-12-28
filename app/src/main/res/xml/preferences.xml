@@ -13,6 +13,7 @@
             android:key="log_folder"
             android:title="Logs directory" />
 
+
     <com.jaredrummler.android.colorpicker.ColorPreferenceCompat
             android:defaultValue="@color/colorPlane"
             android:key="plane_color"
@@ -95,34 +96,16 @@
                 android:key="show_artificial_horizon"
                 android:summary="Shows attitude. Please set frsky_pitch_roll = ON in CLI for Inav 2.0.+."
                 android:title="Show artificial horizon view" />
-
-    </PreferenceCategory>
-
-    <PreferenceCategory android:title="UAV Radar">
         <SwitchPreference
-                android:defaultValue="false"
-                android:key="send_telemetry_data"
-                android:summary="Sends telemetry data to uavradar server. It allows other users to see your aircraft at the https://uavradar.org/ Data is sent when acquired valid GPS fix and aircraft is armed"
-                android:title="Send data to uavradar server" />
-
-        <EditTextPreference
-                android:dependency="send_telemetry_data"
-                android:key="callsign"
-                android:title="Callsign" />
-
-        <EditTextPreference
-                android:dependency="send_telemetry_data"
-                android:key="model"
-                android:title="Model" />
-
-        <Preference android:title="Go to UAV radar">
-            <intent
-                    android:action="android.intent.action.VIEW"
-                    android:data="https://uavradar.org" />
-        </Preference>
+            android:title="Crossfire RF/LQ"
+            android:key="use_crsf_lq"
+            android:defaultValue="false"
+            android:summary="Show RF/LQ instead of RSSI for Crossfire"
+            />
 
     </PreferenceCategory>
-    <PreferenceCategory android:title="UAV Radar">
+
+    <PreferenceCategory android:title="Debug">
         <Preference android:title="Copy debug info"
                 android:key="copy_debug_info">
         </Preference>
