@@ -1,10 +1,7 @@
 package crazydude.com.telemetry.service
 
 import android.annotation.TargetApi
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.app.Service
+import android.app.*
 import android.bluetooth.BluetoothDevice
 import android.content.Context
 import android.content.Intent
@@ -48,6 +45,7 @@ class DataService : Service(), DataDecoder.Listener {
     private var telemetryModel = TelemetryModel()
     private val mutableTelemetryLiveData = MutableLiveData(telemetryModel)
     private var mutableConnectionStateLiveData = MutableLiveData(ConnectionState.DISCONNECTED)
+    private var notification: Notification? = null
 
     val telemetryLiveData = mutableTelemetryLiveData as LiveData<TelemetryModel>
     val connectionStateLiveData = mutableConnectionStateLiveData as LiveData<ConnectionState>
@@ -68,8 +66,8 @@ class DataService : Service(), DataDecoder.Listener {
         }
 
 
-        val notification = NotificationCompat.Builder(this, "bt_channel")
-            .setContentText("Telemetry service is running. To stop - disconnect and close the app")
+        notification = NotificationCompat.Builder(this, "bt_channel")
+            .setContentText("Telemetry service is running. To stop - disconnect")
             .setContentTitle("Telemetry service is running")
             .setContentIntent(
                 PendingIntent.getActivity(
@@ -81,7 +79,6 @@ class DataService : Service(), DataDecoder.Listener {
             )
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .build()
-        startForeground(1, notification)
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
@@ -170,6 +167,7 @@ class DataService : Service(), DataDecoder.Listener {
 
     override fun onConnected() {
         mutableConnectionStateLiveData.postValue(ConnectionState.CONNECTED)
+        startForeground(1, notification)
     }
 
     override fun onGPSData(latitude: Double, longitude: Double) {
@@ -232,6 +230,7 @@ class DataService : Service(), DataDecoder.Listener {
         mutableTelemetryLiveData.postValue(telemetryModel)
         mutableConnectionStateLiveData.postValue(ConnectionState.DISCONNECTED)
         Toast.makeText(this, "Disconnected", Toast.LENGTH_LONG).show()
+        stopForeground(true)
     }
 
     override fun onGPSState(satellites: Int, gpsFix: Boolean) {
