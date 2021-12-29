@@ -14,8 +14,6 @@ import android.hardware.usb.UsbManager
 import android.net.Uri
 import android.os.*
 import android.provider.DocumentsContract
-import android.text.Html
-import android.text.method.LinkMovementMethod
 import android.view.View
 import android.widget.*
 import androidx.activity.viewModels
